@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eduplatform.mapper.CourseMapper">
+
+    <resultMap id="courseVoMap" type="com.eduplatform.vo.CourseVO">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="description" javaType="java.lang.String"/>
+            <arg column="price" javaType="java.math.BigDecimal"/>
+            <arg column="instructor_id" javaType="java.lang.Long"/>
+            <arg column="instructor_name" javaType="java.lang.String"/>
+            <arg column="category_id" javaType="java.lang.Long"/>
+            <arg column="category_name" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="cover_image" javaType="java.lang.String"/>
+            <arg column="tags" javaType="java.lang.String[]"
+                 typeHandler="com.eduplatform.mapper.handler.StringArrayTypeHandler"/>
+            <arg column="created_at" javaType="java.time.OffsetDateTime"/>
+            <arg column="updated_at" javaType="java.time.OffsetDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="courseDetailMap" type="com.eduplatform.vo.CourseDetailVO">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="description" javaType="java.lang.String"/>
+            <arg column="price" javaType="java.math.BigDecimal"/>
+            <arg column="instructor_id" javaType="java.lang.Long"/>
+            <arg column="instructor_name" javaType="java.lang.String"/>
+            <arg column="category_id" javaType="java.lang.Long"/>
+            <arg column="category_name" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="cover_image" javaType="java.lang.String"/>
+            <arg column="tags" javaType="java.lang.String[]"
+                 typeHandler="com.eduplatform.mapper.handler.StringArrayTypeHandler"/>
+            <arg column="details" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.OffsetDateTime"/>
+            <arg column="updated_at" javaType="java.time.OffsetDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="courseColumns">
+        c.id, c.title, c.description, c.price, c.instructor_id, i.name AS instructor_name,
+        c.category_id, cat.name AS category_name, c.status::text AS status, c.cover_image,
+        c.tags, c.created_at, c.updated_at
+    </sql>
+
+    <sql id="courseFilters">
+        <where>
+            <if test="keyword != null">
+                AND (to_tsvector('simple', c.title) @@ plainto_tsquery('simple', #{keyword})
+                     OR c.description ILIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="instructorId != null">AND c.instructor_id = #{instructorId}</if>
+            <if test="categoryId != null">AND c.category_id = #{categoryId}</if>
+            <if test="status != null">AND c.status = #{status}::course_status</if>
+        </where>
+    </sql>
+
+    <select id="list" resultMap="courseVoMap">
+        SELECT <include refid="courseColumns"/>
+        FROM course c
+        JOIN instructor i ON i.id = c.instructor_id
+        LEFT JOIN category cat ON cat.id = c.category_id
+        <include refid="courseFilters"/>
+        ORDER BY c.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM course c
+        <include refid="courseFilters"/>
+    </select>
+
+    <select id="selectDetailById" resultMap="courseDetailMap">
+        SELECT <include refid="courseColumns"/>, c.details::text AS details
+        FROM course c
+        JOIN instructor i ON i.id = c.instructor_id
+        LEFT JOIN category cat ON cat.id = c.category_id
+        WHERE c.id = #{id}
+    </select>
+
+    <select id="listByInstructor" resultMap="courseVoMap">
+        SELECT <include refid="courseColumns"/>
+        FROM course c
+        JOIN instructor i ON i.id = c.instructor_id
+        LEFT JOIN category cat ON cat.id = c.category_id
+        WHERE c.instructor_id = #{instructorId}
+        <if test="status != null">AND c.status = #{status}::course_status</if>
+        ORDER BY c.id DESC
+    </select>
+
+    <insert id="insertCourse" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO course (title, description, price, instructor_id, category_id, cover_image, tags, details)
+        VALUES (#{title}, #{description}, #{price}, #{instructorId}, #{categoryId}, #{coverImage},
+        <choose>
+            <when test="tags != null">#{tags,typeHandler=com.eduplatform.mapper.handler.StringArrayTypeHandler}</when>
+            <otherwise>NULL</otherwise>
+        </choose>,
+        <choose>
+            <when test="details != null">CAST(#{details} AS jsonb)</when>
+            <otherwise>NULL</otherwise>
+        </choose>)
+    </insert>
+
+    <update id="updateCourse">
+        UPDATE course
+        <set>
+            title = #{title},
+            description = #{description},
+            price = #{price},
+            instructor_id = #{instructorId},
+            category_id = #{categoryId},
+            cover_image = #{coverImage},
+            tags = <choose>
+                <when test="tags != null">#{tags,typeHandler=com.eduplatform.mapper.handler.StringArrayTypeHandler}</when>
+                <otherwise>NULL</otherwise>
+            </choose>,
+            details = <choose>
+                <when test="details != null">CAST(#{details} AS jsonb)</when>
+                <otherwise>NULL</otherwise>
+            </choose>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE course SET status = #{status}::course_status WHERE id = #{id}
+    </update>
+
+    <select id="countByInstructorId" resultType="long">
+        SELECT COUNT(*) FROM course WHERE instructor_id = #{instructorId}
+    </select>
+
+</mapper>

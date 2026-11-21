@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eduplatform.mapper.CategoryMapper">
+
+    <select id="selectAllOrdered" resultType="com.eduplatform.entity.Category">
+        SELECT id, name, parent_id, sort_order, level, created_at, updated_at
+        FROM category
+        ORDER BY sort_order, id
+    </select>
+
+    <select id="countByParentId" resultType="long">
+        SELECT COUNT(*) FROM category WHERE parent_id = #{parentId}
+    </select>
+
+    <select id="countCoursesByCategoryId" resultType="long">
+        SELECT COUNT(*) FROM course WHERE category_id = #{categoryId}
+    </select>
+
+</mapper>

@@ -26,7 +26,13 @@ public class InstructorServiceImpl implements InstructorService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
+    public List<InstructorVO> listAll() {
+        return instructorMapper.list(null).stream()
+                .map(InstructorVO::from)
+                .toList();
+    }
+
     public Long create(InstructorDTO dto) {
         Instructor entity = new Instructor();
         apply(dto, entity);

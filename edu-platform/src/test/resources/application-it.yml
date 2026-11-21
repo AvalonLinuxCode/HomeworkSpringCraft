@@ -1,0 +1,8 @@
+# Ring B 集成测试数据源：本地 PostgreSQL 18（默认实例 127.0.0.1:5433）
+# 独立测试库 edu_platform_test，每个用例前重放 schema.sql
+# 覆盖方式：TEST_DB_URL / TEST_DB_USER / TEST_DB_PASSWORD
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:postgresql://127.0.0.1:5433/edu_platform_test}
+    username: ${TEST_DB_USER:edu_user}
+    password: ${TEST_DB_PASSWORD:edu_password}
