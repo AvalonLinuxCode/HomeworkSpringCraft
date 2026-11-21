@@ -84,4 +84,5 @@ public class InstructorServiceImpl implements InstructorService {
         }
         return entity;
     }
+            throw new NotFoundException("讲师不存在");
 }
