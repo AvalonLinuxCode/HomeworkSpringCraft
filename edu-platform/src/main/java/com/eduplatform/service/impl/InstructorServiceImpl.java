@@ -1,5 +1,6 @@
 package com.eduplatform.service.impl;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import com.eduplatform.common.BusinessException;
 import com.eduplatform.common.NotFoundException;
 import com.eduplatform.common.PageResult;
@@ -49,11 +50,17 @@ public class InstructorServiceImpl implements InstructorService {
     @Override
     @Transactional
     public void delete(Long id) {
+        requireInstructor(id); // 不存在时抛 NotFoundException（与 getById/update 一致）
         long courses = instructorMapper.countCoursesByInstructorId(id);
         if (courses > 0) {
             throw new BusinessException("该讲师名下存在 " + courses + " 门课程，无法删除");
         }
-        instructorMapper.deleteById(id);
+        try {
+            instructorMapper.deleteById(id);
+        } catch (DataIntegrityViolationException e) {
+            // 并发场景：count 通过但 delete 时被外键约束拦截
+            throw new BusinessException("该讲师名下存在课程，无法删除");
+        }
     }
 
     @Override
@@ -84,5 +91,4 @@ public class InstructorServiceImpl implements InstructorService {
         }
         return entity;
     }
-            throw new NotFoundException("讲师不存在");
 }

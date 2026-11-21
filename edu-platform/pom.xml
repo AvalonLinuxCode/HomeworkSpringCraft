@@ -20,8 +20,6 @@
     <properties>
         <java.version>21</java.version>
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
-        <embedded-postgres.version>2.1.0</embedded-postgres.version>
-        <embedded-postgres-binaries.version>16.2.0</embedded-postgres-binaries.version>
     </properties>
 
     <dependencies>
@@ -45,19 +43,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- 真实 PostgreSQL，免 Docker：Ring B 集成测试使用 -->
-        <dependency>
-            <groupId>io.zonky.test</groupId>
-            <artifactId>embedded-postgres</artifactId>
-            <version>${embedded-postgres.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.zonky.test.postgres</groupId>
-            <artifactId>embedded-postgres-binaries-windows-amd64</artifactId>
-            <version>${embedded-postgres-binaries.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -65,15 +50,25 @@
             <testResource>
                 <directory>src/test/resources</directory>
             </testResource>
-            <!-- 唯一事实来源：设计文档中的 DDL，构建期复制，不做副本 -->
-            <testResource>
-                <directory>../docs/Design_Description</directory>
-                <includes>
-                    <include>schema.sql</include>
-                </includes>
-            </testResource>
         </testResources>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <copy file="../docs/Design_Description/schema.sql"
+                                      tofile="${project.build.testSourceDirectory}/../resources/schema.sql"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

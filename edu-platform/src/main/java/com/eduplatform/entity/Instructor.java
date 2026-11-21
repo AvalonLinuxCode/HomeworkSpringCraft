@@ -19,11 +19,15 @@ public class Instructor {
 
     private String name;
 
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String avatar;
 
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String title;
 
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String description;
+
 
     @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     private OffsetDateTime createdAt;

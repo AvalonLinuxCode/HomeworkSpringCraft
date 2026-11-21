@@ -11,6 +11,8 @@ public record InstructorQuery(String keyword, int pageNum, int pageSize) {
     public InstructorQuery {
         pageNum = Math.max(pageNum, 1);
         pageSize = pageSize < 1 ? DEFAULT_PAGE_SIZE : Math.min(pageSize, MAX_PAGE_SIZE);
+        // 防止 (pageNum-1)*pageSize 溢出
+        pageNum = Math.min(pageNum, Integer.MAX_VALUE / pageSize);
         keyword = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
     }
 }

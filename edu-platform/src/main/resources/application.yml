@@ -2,9 +2,10 @@ spring:
   application:
     name: edu-platform
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/edu_platform}
+    # 本地 PostgreSQL 18 实例监听 5433（安装时改过端口）；生产环境用 DB_URL 覆盖
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5433/edu_platform}
     username: ${DB_USER:edu_user}
-    password: ${DB_PASSWORD:edu_password}
+    password: ${DB_PASSWORD:}
   sql:
     init:
       # DDL 由 docs/Design_Description/schema.sql 手工/测试执行，启动时绝不自动建表
