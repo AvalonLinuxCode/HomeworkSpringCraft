@@ -75,7 +75,7 @@ class InstructorServiceImplTest {
 
         assertThatThrownBy(() -> instructorService.getById(99L))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("99");
+                .hasMessage("讲师不存在");
     }
 
     @Test
@@ -90,6 +90,7 @@ class InstructorServiceImplTest {
 
     @Test
     void deleteWithCoursesThrowsBusinessAndSkipsWrite() {
+        when(instructorMapper.selectById(5L)).thenReturn(instructor(5L, "测试讲师"));
         when(instructorMapper.countCoursesByInstructorId(5L)).thenReturn(2L);
 
         assertThatThrownBy(() -> instructorService.delete(5L))
@@ -101,6 +102,7 @@ class InstructorServiceImplTest {
 
     @Test
     void deleteWithoutCoursesDeletesRow() {
+        when(instructorMapper.selectById(5L)).thenReturn(instructor(5L, "测试讲师"));
         when(instructorMapper.countCoursesByInstructorId(5L)).thenReturn(0L);
 
         instructorService.delete(5L);
@@ -117,6 +119,8 @@ class InstructorServiceImplTest {
         PageResult<InstructorVO> page = instructorService.list(new InstructorQuery(null, 1, 10));
 
         assertThat(page.total()).isEqualTo(2L);
+        assertThat(page.records()).hasSize(2);
+        assertThat(page.records()).extracting(InstructorVO::id).containsExactly(1L, 2L);
         assertThat(page.records()).extracting(InstructorVO::name).containsExactly("张老师", "李老师");
     }
 

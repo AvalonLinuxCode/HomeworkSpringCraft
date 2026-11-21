@@ -118,6 +118,7 @@ class InstructorMapperIT {
 
     @Test
     void countCoursesByInstructorIdCountsOnlyThatInstructor() {
+        // 依赖 schema.sql 种子数据：张老师(id=1)有1门课程，李老师(id=2)有1门课程
         assertThat(instructorMapper.countCoursesByInstructorId(1L)).isEqualTo(1L);
         assertThat(instructorMapper.countCoursesByInstructorId(2L)).isEqualTo(1L);
         assertThat(instructorMapper.countCoursesByInstructorId(999L)).isZero();
@@ -125,6 +126,7 @@ class InstructorMapperIT {
 
     @Test
     void listFiltersByKeywordAndPaginates() {
+        // 依赖 schema.sql 种子数据（张老师、李老师）
         assertThat(instructorMapper.count(null)).isEqualTo(2L);
         assertThat(instructorMapper.count("张")).isEqualTo(1L);
 

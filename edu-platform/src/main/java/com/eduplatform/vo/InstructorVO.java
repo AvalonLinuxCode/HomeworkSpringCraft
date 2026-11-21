@@ -6,6 +6,8 @@ import java.time.OffsetDateTime;
 
 /**
  * 讲师出参。
+ *
+ * @implNote 所有字段显式列出，新增实体字段需手动加入 from() 方法，避免反射泄漏。
  */
 public record InstructorVO(Long id, String name, String avatar, String title,
                            String description, OffsetDateTime createdAt, OffsetDateTime updatedAt) {

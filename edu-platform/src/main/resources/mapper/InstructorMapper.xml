@@ -11,8 +11,11 @@
     <select id="list" resultType="com.eduplatform.entity.Instructor">
         SELECT id, name, avatar, title, description, created_at, updated_at
         FROM instructor
-        WHERE 1 = 1
-        <include refid="keywordFilter"/>
+        <where>
+            <if test="keyword != null">
+                AND name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
         ORDER BY id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
@@ -20,8 +23,11 @@
     <select id="count" resultType="long">
         SELECT COUNT(*)
         FROM instructor
-        WHERE 1 = 1
-        <include refid="keywordFilter"/>
+        <where>
+            <if test="keyword != null">
+                AND name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
     </select>
 
     <select id="countCoursesByInstructorId" resultType="long">

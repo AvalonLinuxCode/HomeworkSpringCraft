@@ -80,7 +80,7 @@ public class InstructorServiceImpl implements InstructorService {
     private Instructor requireInstructor(Long id) {
         Instructor entity = id == null ? null : instructorMapper.selectById(id);
         if (entity == null) {
-            throw new NotFoundException("讲师不存在: id=" + id);
+            throw new NotFoundException("讲师不存在");
         }
         return entity;
     }
