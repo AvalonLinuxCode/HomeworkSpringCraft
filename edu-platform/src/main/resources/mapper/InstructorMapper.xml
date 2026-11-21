@@ -12,9 +12,7 @@
         SELECT id, name, avatar, title, description, created_at, updated_at
         FROM instructor
         <where>
-            <if test="keyword != null">
-                AND name LIKE CONCAT('%', #{keyword}, '%')
-            </if>
+            <include refid="keywordFilter"/>
         </where>
         ORDER BY id DESC
         LIMIT #{limit} OFFSET #{offset}
@@ -24,13 +22,7 @@
         SELECT COUNT(*)
         FROM instructor
         <where>
-            <if test="keyword != null">
-                AND name LIKE CONCAT('%', #{keyword}, '%')
-            </if>
+            <include refid="keywordFilter"/>
         </where>
-    </select>
-
-    <select id="countCoursesByInstructorId" resultType="long">
-        SELECT COUNT(*) FROM course WHERE instructor_id = #{instructorId}
     </select>
 </mapper>

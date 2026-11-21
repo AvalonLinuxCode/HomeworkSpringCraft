@@ -1,16 +1,10 @@
 package com.eduplatform.mapper;
 
 import com.eduplatform.entity.Instructor;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.util.StreamUtils;
 
-import javax.sql.DataSource;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,30 +18,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Ring B：真实 PostgreSQL 上的 Mapper + DDL 集成测试。
  *
- * <p>连接本地 PostgreSQL 18 实例（默认 {@code 127.0.0.1:5433/edu_platform_test}，
- * 账号 {@code edu_user/edu_password}）。连接参数见 {@code src/test/resources/application-it.yml}，
- * 可用 {@code TEST_DB_URL} / {@code TEST_DB_USER} / {@code TEST_DB_PASSWORD} 覆盖。
- * 每个用例前整段重放 {@code schema.sql}，用例之间互不干扰。
+ * <p>连接本地 PostgreSQL 18 实例（默认 {@code 127.0.0.1:5433/edu_platform_test}），
+ * 每个用例前整段重放 {@code schema.sql}（见 {@link AbstractMapperIT}），用例之间互不干扰。
  */
-@ActiveProfiles("it")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-class InstructorMapperIT {
+@SpringBootTest
+class InstructorMapperIT extends AbstractMapperIT {
 
     @Autowired
     private InstructorMapper instructorMapper;
-
-    @Autowired
-    private DataSource dataSource;
-
-    @BeforeEach
-    void applySchema() throws Exception {
-        String ddl = StreamUtils.copyToString(
-                new ClassPathResource("schema.sql").getInputStream(), StandardCharsets.UTF_8);
-        // 整段执行：DDL 中的 $$ 函数体不能被分号切分
-        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
-            statement.execute(ddl);
-        }
-    }
 
     @Test
     void schemaCreatesAllTablesAndEnumTypes() throws SQLException {
@@ -101,14 +79,6 @@ class InstructorMapperIT {
 
         assertThat(instructorMapper.deleteById(entity.getId())).isEqualTo(1);
         assertThat(instructorMapper.selectById(entity.getId())).isNull();
-    }
-
-    @Test
-    void countCoursesByInstructorIdCountsOnlyThatInstructor() {
-        // 依赖 schema.sql 种子数据：张老师(id=1)有1门课程，李老师(id=2)有1门课程
-        assertThat(instructorMapper.countCoursesByInstructorId(1L)).isEqualTo(1L);
-        assertThat(instructorMapper.countCoursesByInstructorId(2L)).isEqualTo(1L);
-        assertThat(instructorMapper.countCoursesByInstructorId(999L)).isZero();
     }
 
     @Test

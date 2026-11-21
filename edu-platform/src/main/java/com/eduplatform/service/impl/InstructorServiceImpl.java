@@ -1,6 +1,5 @@
 package com.eduplatform.service.impl;
 
-import org.springframework.dao.DataIntegrityViolationException;
 import com.eduplatform.common.BusinessException;
 import com.eduplatform.common.NotFoundException;
 import com.eduplatform.common.PageResult;
@@ -8,9 +7,11 @@ import com.eduplatform.common.ValidationException;
 import com.eduplatform.dto.InstructorDTO;
 import com.eduplatform.dto.InstructorQuery;
 import com.eduplatform.entity.Instructor;
+import com.eduplatform.mapper.CourseMapper;
 import com.eduplatform.mapper.InstructorMapper;
 import com.eduplatform.service.InstructorService;
 import com.eduplatform.vo.InstructorVO;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,19 +21,23 @@ import java.util.List;
 public class InstructorServiceImpl implements InstructorService {
 
     private final InstructorMapper instructorMapper;
+    private final CourseMapper courseMapper;
 
-    public InstructorServiceImpl(InstructorMapper instructorMapper) {
+    public InstructorServiceImpl(InstructorMapper instructorMapper, CourseMapper courseMapper) {
         this.instructorMapper = instructorMapper;
+        this.courseMapper = courseMapper;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<InstructorVO> listAll() {
-        return instructorMapper.list(null).stream()
+        return instructorMapper.list(null, Integer.MAX_VALUE, 0).stream()
                 .map(InstructorVO::from)
                 .toList();
     }
 
+    @Override
+    @Transactional
     public Long create(InstructorDTO dto) {
         Instructor entity = new Instructor();
         apply(dto, entity);
@@ -57,7 +62,7 @@ public class InstructorServiceImpl implements InstructorService {
     @Transactional
     public void delete(Long id) {
         requireInstructor(id); // 不存在时抛 NotFoundException（与 getById/update 一致）
-        long courses = instructorMapper.countCoursesByInstructorId(id);
+        long courses = courseMapper.countByInstructorId(id);
         if (courses > 0) {
             throw new BusinessException("该讲师名下存在 " + courses + " 门课程，无法删除");
         }

@@ -53,6 +53,7 @@ class CourseServiceImplTest {
     @Test
     void createPersistsAndReturnsId() {
         when(instructorMapper.selectById(anyLong())).thenReturn(new com.eduplatform.entity.Instructor());
+        when(categoryMapper.selectById(anyLong())).thenReturn(new com.eduplatform.entity.Category());
         when(courseMapper.insertCourse(any(Course.class))).thenAnswer(invocation -> {
             invocation.getArgument(0, Course.class).setId(9L);
             return 1;

@@ -7,6 +7,7 @@ import com.eduplatform.common.ValidationException;
 import com.eduplatform.dto.InstructorDTO;
 import com.eduplatform.dto.InstructorQuery;
 import com.eduplatform.entity.Instructor;
+import com.eduplatform.mapper.CourseMapper;
 import com.eduplatform.mapper.InstructorMapper;
 import com.eduplatform.service.impl.InstructorServiceImpl;
 import com.eduplatform.vo.InstructorVO;
@@ -37,6 +38,9 @@ class InstructorServiceImplTest {
 
     @Mock
     private InstructorMapper instructorMapper;
+
+    @Mock
+    private CourseMapper courseMapper;
 
     @InjectMocks
     private InstructorServiceImpl instructorService;
@@ -91,7 +95,7 @@ class InstructorServiceImplTest {
     @Test
     void deleteWithCoursesThrowsBusinessAndSkipsWrite() {
         when(instructorMapper.selectById(5L)).thenReturn(instructor(5L, "测试讲师"));
-        when(instructorMapper.countCoursesByInstructorId(5L)).thenReturn(2L);
+        when(courseMapper.countByInstructorId(5L)).thenReturn(2L);
 
         assertThatThrownBy(() -> instructorService.delete(5L))
                 .isInstanceOf(BusinessException.class)
@@ -103,7 +107,7 @@ class InstructorServiceImplTest {
     @Test
     void deleteWithoutCoursesDeletesRow() {
         when(instructorMapper.selectById(5L)).thenReturn(instructor(5L, "测试讲师"));
-        when(instructorMapper.countCoursesByInstructorId(5L)).thenReturn(0L);
+        when(courseMapper.countByInstructorId(5L)).thenReturn(0L);
 
         instructorService.delete(5L);
 

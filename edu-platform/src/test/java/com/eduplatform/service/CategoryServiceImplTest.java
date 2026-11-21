@@ -10,6 +10,7 @@ import com.eduplatform.service.CategoryService;
 import com.eduplatform.vo.CategoryVO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,12 +40,18 @@ class CategoryServiceImplTest {
 
     @Test
     void createRootCategory() {
-        when(categoryMapper.selectById(anyLong())).thenReturn(null);
+        when(categoryMapper.insert(any(Category.class))).thenAnswer(invocation -> {
+            invocation.getArgument(0, Category.class).setId(5L);
+            return 1;
+        });
 
         Long id = categoryService.create(new CategoryDTO("根分类", null, 10));
 
-        assertThat(id).isNotNull();
-        verify(categoryMapper).insert(any(Category.class));
+        assertThat(id).isEqualTo(5L);
+        ArgumentCaptor<Category> captor = ArgumentCaptor.forClass(Category.class);
+        verify(categoryMapper).insert(captor.capture());
+        assertThat(captor.getValue().getName()).isEqualTo("根分类");
+        assertThat(captor.getValue().getLevel()).isEqualTo(0);
     }
 
     @Test

@@ -14,7 +14,7 @@
             <arg column="category_name" javaType="java.lang.String"/>
             <arg column="status" javaType="java.lang.String"/>
             <arg column="cover_image" javaType="java.lang.String"/>
-            <arg column="tags" javaType="java.lang.String[]"
+            <arg column="tags" javaType="[Ljava.lang.String;"
                  typeHandler="com.eduplatform.mapper.handler.StringArrayTypeHandler"/>
             <arg column="created_at" javaType="java.time.OffsetDateTime"/>
             <arg column="updated_at" javaType="java.time.OffsetDateTime"/>
@@ -33,7 +33,7 @@
             <arg column="category_name" javaType="java.lang.String"/>
             <arg column="status" javaType="java.lang.String"/>
             <arg column="cover_image" javaType="java.lang.String"/>
-            <arg column="tags" javaType="java.lang.String[]"
+            <arg column="tags" javaType="[Ljava.lang.String;"
                  typeHandler="com.eduplatform.mapper.handler.StringArrayTypeHandler"/>
             <arg column="details" javaType="java.lang.String"/>
             <arg column="created_at" javaType="java.time.OffsetDateTime"/>
@@ -94,8 +94,13 @@
     </select>
 
     <insert id="insertCourse" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        INSERT INTO course (title, description, price, instructor_id, category_id, cover_image, tags, details)
-        VALUES (#{title}, #{description}, #{price}, #{instructorId}, #{categoryId}, #{coverImage},
+        INSERT INTO course (title, description, price, instructor_id, category_id, status, cover_image, tags, details)
+        VALUES (#{title}, #{description}, #{price}, #{instructorId}, #{categoryId},
+        <choose>
+            <when test="status != null">#{status}::course_status</when>
+            <otherwise>DEFAULT</otherwise>
+        </choose>,
+        #{coverImage},
         <choose>
             <when test="tags != null">#{tags,typeHandler=com.eduplatform.mapper.handler.StringArrayTypeHandler}</when>
             <otherwise>NULL</otherwise>
@@ -114,6 +119,7 @@
             price = #{price},
             instructor_id = #{instructorId},
             category_id = #{categoryId},
+            status = #{status}::course_status,
             cover_image = #{coverImage},
             tags = <choose>
                 <when test="tags != null">#{tags,typeHandler=com.eduplatform.mapper.handler.StringArrayTypeHandler}</when>

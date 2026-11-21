@@ -2,17 +2,18 @@ package com.eduplatform.mapper;
 
 import com.eduplatform.common.BusinessException;
 import com.eduplatform.common.NotFoundException;
+import com.eduplatform.common.ValidationException;
 import com.eduplatform.dto.CategoryDTO;
 import com.eduplatform.entity.Category;
+import com.eduplatform.entity.Course;
+import com.eduplatform.entity.Instructor;
 import com.eduplatform.service.impl.CategoryServiceImpl;
 import com.eduplatform.vo.CategoryVO;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.jdbc.SqlConfig;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,16 +21,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Ring B：分类服务集成测试，连真实 PostgreSQL 18（独立库 edu_platform_test，每个用例重放 schema.sql）。
+ *
+ * <p>注意：schema.sql 重放后自带种子分类（前端开发/后端开发等），涉及全局树大小的断言需按名称定位。
  */
 @SpringBootTest
-@Sql(scripts = "classpath:schema.sql", config = @SqlConfig(encoding = "utf-8"))
-class CategoryMapperIT {
+class CategoryMapperIT extends AbstractMapperIT {
 
     @Autowired
     private CategoryMapper categoryMapper;
 
     @Autowired
     private CategoryServiceImpl categoryService;
+
+    @Autowired
+    private CourseMapper courseMapper;
+
+    @Autowired
+    private InstructorMapper instructorMapper;
 
     @Test
     void createRootCategoryAndQuery() {
@@ -59,10 +67,9 @@ class CategoryMapperIT {
 
         List<CategoryVO> tree = categoryService.tree();
 
-        assertThat(tree).hasSize(1);
-        assertThat(tree.get(0).name()).isEqualTo("根");
-        assertThat(tree.get(0).children()).hasSize(1);
-        assertThat(tree.get(0).children().get(0).name()).isEqualTo("子");
+        // 种子数据自带 2 个根分类，不能按总数断言，按名称定位本次创建的节点
+        CategoryVO root = tree.stream().filter(node -> "根".equals(node.name())).findFirst().orElseThrow();
+        assertThat(root.children()).extracting(CategoryVO::name).isEqualTo(List.of("子"));
     }
 
     @Test
@@ -90,13 +97,26 @@ class CategoryMapperIT {
     @Test
     void deleteWithCoursesFails() {
         Long catId = categoryService.create(new CategoryDTO("分类", null, 10));
-        // 不实际建课程，仅验证 delete 不抛异常
-        // 真实场景：course 表有外键约束，会抛 DataIntegrityViolationException
+        Long instructorId = instructorMapper.selectList(null).get(0).getId();
 
-        categoryService.delete(catId);
+        Course course = new Course();
+        course.setTitle("关联课程");
+        course.setInstructorId(instructorId);
+        course.setCategoryId(catId);
+        course.setPrice(BigDecimal.ZERO);
+        courseMapper.insertCourse(course);
 
-        assertThatThrownBy(() -> categoryMapper.selectById(catId))
-                .isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> categoryService.delete(catId))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void deleteEmptyCategoryRemovesRow() {
+        Long id = categoryService.create(new CategoryDTO("临时分类", null, 10));
+
+        categoryService.delete(id);
+
+        assertThat(categoryMapper.selectById(id)).isNull();
     }
 
     @Test
