@@ -12,7 +12,7 @@
 | JDK | 17+（本机 Zulu 25） | 代码编译目标 Java 21，`JAVA_HOME` 需配置 |
 | Maven | 3.8+（本机 3.9.9，位于 `%USERPROFILE%\apache-maven-3.9.9`） | 构建后端 |
 | Node.js | 18+（本机 v27） | 构建前端，自带 npm |
-| PostgreSQL | 18.x（本机 18.7，端口 **5433**，数据目录 `D:\myDB\postgresql_Data`） | 数据库 |
+| PostgreSQL | 18.x（本机 18.7，端口 **5433**，数据目录 `AppData\postgresql_Data`） | 数据库 |
 
 ## 二、环境安装
 
@@ -38,7 +38,7 @@
 
 ### 4. PostgreSQL 18
 
-1. 安装时选择端口 **5433**（本机数据目录 `D:\myDB\postgresql_Data\data`）；
+1. 安装时选择端口 **5433**；
 2. 验证：`psql -h 127.0.0.1 -p 5433 -U postgres` 可登录。
 
 ---
