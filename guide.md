@@ -3,7 +3,7 @@
 > 适用：Spring Boot 在线教育平台（后端 `edu-platform/` + 前端 `edu-platform-frontend/`）
 > 本章所有命令均在 **Windows + PostgreSQL 18.7** 上实测验证（v0.2.0）。
 
----
+> **路径约定**：下文用 `<PROJECT_ROOT>` 指代你克隆仓库的根目录，用 `<PG_BIN>` 指代你本机 `psql.exe` 所在目录（如 `C:\Program Files\PostgreSQL\18\bin`）。**请把这两处替换成你自己的路径**——文档中出现的具体盘符只是示例，不代表你的机器。
 
 ## 一、环境要求
 
@@ -56,11 +56,12 @@ psql -h 127.0.0.1 -p 5433 -U postgres -d postgres -c "CREATE DATABASE edu_platfo
 ### 2. 导入 DDL（唯一事实来源：`docs/Design_Description/schema.sql`）
 
 > ⚠️ 必须以 **edu_user** 身份执行，若用 postgres 执行，表属主是 postgres，应用会报「对表 xxx 的权限不足」。
+> ⚠️ `pom.xml` 构建期会把 `docs/Design_Description/schema.sql` 拷进测试类路径，因此 **`docs/` 目录必须与 `edu-platform/` 保持同级**（默认克隆布局即满足）。若单独移动 `edu-platform/` 子目录，构建会因找不到 `schema.sql` 失败。
 
 ```cmd
-cd D:\myDB\postgresql_Data\bin
+cd <PG_BIN>
 set PGPASSWORD=edu_password
-psql -h 127.0.0.1 -p 5433 -U edu_user -d edu_platform -f E:\AllProject\TEST\HomeworkSpringCraft\docs\Design_Description\schema.sql
+psql -h 127.0.0.1 -p 5433 -U edu_user -d edu_platform -f <PROJECT_ROOT>\docs\Design_Description\schema.sql
 ```
 
 DDL 自带 DROP + 建表 + 种子数据（1 用户 / 2 讲师 / 4 分类 / 2 课程），可重复执行。
@@ -72,7 +73,7 @@ DDL 自带 DROP + 建表 + 种子数据（1 用户 / 2 讲师 / 4 分类 / 2 课
 ### 构建
 
 ```cmd
-cd E:\AllProject\TEST\HomeworkSpringCraft\edu-platform
+cd <PROJECT_ROOT>\edu-platform
 mvn clean package -DskipTests     :: 产出 target\edu-platform-1.0.0-SNAPSHOT.jar
 ```
 
@@ -102,6 +103,8 @@ java -jar target\edu-platform-1.0.0-SNAPSHOT.jar
 | `DB_USER` | `edu_user` |
 | `DB_PASSWORD` | `edu_password` |
 
+> 💡 若你的 PostgreSQL 不在 **5433** 端口（本机默认 5432），设置环境变量 `DB_URL` / `TEST_DB_URL` 即可，无需改代码。`start.bat` 同样无需改——它只负责启动，不写端口。
+
 ### 停止
 
 - 前台运行：`Ctrl+C`；
@@ -121,7 +124,7 @@ mvn verify      :: Ring A + Ring B 集成测试（22 个，连本机 edu_platfor
 ### 安装依赖（首次）
 
 ```cmd
-cd E:\AllProject\TEST\HomeworkSpringCraft\edu-platform-frontend
+cd <PROJECT_ROOT>\edu-platform-frontend
 npm install
 ```
 
@@ -152,7 +155,7 @@ npm run build
 仓库根目录提供 `start.bat`，双击或在 **cmd.exe** 中运行：
 
 ```cmd
-cd E:\AllProject\TEST\HomeworkSpringCraft
+cd <PROJECT_ROOT>
 start.bat
 ```
 
@@ -188,7 +191,7 @@ start.bat
 
 | # | 现象 | 原因与解决 |
 |---|------|-----------|
-| 1 | Git Bash 里 `mvn` 命令无输出、CPU 100% | Maven 脚本在 msys 下 `find_maven_basedir` 死循环。用 **cmd.exe** 执行，或先 `export MAVEN_BASEDIR='E:\AllProject\TEST\HomeworkSpringCraft\edu-platform'` |
+| 1 | Git Bash 里 `mvn` 命令无输出、CPU 100% | Maven 脚本在 msys 下 `find_maven_basedir` 死循环。用 **cmd.exe** 执行，或先 `export MAVEN_BASEDIR='<PROJECT_ROOT>\edu-platform'` |
 | 2 | 应用启动成功但接口全部 500 | 数据库连接失败：核对 PG 是否运行、`edu_user` 密码、`DB_URL` 端口。`application.yml` 默认密码 `edu_password`，可用 `DB_PASSWORD` 覆盖 |
 | 3 | 报错「对表 instructor 的权限不足」 | DDL 以 postgres 身份执行过，表属主是 postgres。用 edu_user 重新执行 `schema.sql` |
 | 4 | 端口被占用（8080/5173） | `netstat -ano \| findstr 8080` 查 PID → `taskkill /F /PID <pid>` |

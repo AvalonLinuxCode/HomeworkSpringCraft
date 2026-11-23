@@ -4,13 +4,16 @@ setlocal
 title EduPlatform 一键启动
 
 REM ==================== 配置区（按需修改） ====================
-set "PROJECT_ROOT=E:\AllProject\TEST\HomeworkSpringCraft"
+REM 项目根目录自动取本脚本所在目录，任何机器放置均可，无需手改。
+REM 如需覆盖，可在下一行手动 set "PROJECT_ROOT=你的绝对路径"。
+set "PROJECT_ROOT=%~dp0"
+REM 去掉 %~dp0 末尾的反斜杠，保证拼出的子目录路径规范
+if "%PROJECT_ROOT:~-1%"=="\" set "PROJECT_ROOT=%PROJECT_ROOT:~0,-1%"
 set "BACKEND_DIR=%PROJECT_ROOT%\edu-platform"
 set "FRONTEND_DIR=%PROJECT_ROOT%\edu-platform-frontend"
 set "BACKEND_PORT=8080"
 set "FRONTEND_PORT=5173"
 set "WAIT_MAX_SEC=120"
-
 echo ============================================
 echo   EduPlatform 一键启动
 echo ============================================
