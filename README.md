@@ -3,6 +3,17 @@
 > 软件工程课程实验项目 — Spring Boot 3 + Vue 3 前后端分离的在线教育平台，
 > 覆盖需求分析 → 设计建模 → 开发 → 测试 → 部署全流程实践。
 
+> [!IMPORTANT]
+> **克隆后请先读这段——文档里的路径和端口是原作者本机的，不是通用值。**
+>
+> - **路径**：部分文档（尤其 `guide.md` 的示例、历史开发日志）出现 `E:\AllProject\...`、`D:\myDB\...` 等绝对路径，这些是**原作者开发机的真实路径，直接照搬会失败**。请把它们当作「占位示例」，替换成你自己的克隆目录与 PostgreSQL 安装目录。`start.bat` 已用 `%~dp0` 自动定位脚本所在目录，**跨机器免配置**。
+> - **端口**：PostgreSQL 默认是 **5432**，本项目用的是 **5433**。若你的 PG 在 5432（或其它端口），无需改代码，设置环境变量 `DB_URL` / `TEST_DB_URL` 即可。
+> - **前置布局**：`docs/` 目录必须与 `edu-platform/` 保持同级（默认克隆即满足），否则 `pom.xml` 构建期按相对路径拷贝 `schema.sql` 会失败。
+>
+> 完整说明见 **[guide.md](guide.md)**「变量约定」与「常见问题」。
+>
+> 也可已将 **[guide.md](guide.md)** 丢给你的Agent，叫他帮你部署
+
 ## ✨ 功能概览
 
 | 模块 | 功能 |
@@ -42,11 +53,12 @@
 
 ## 🚀 快速开始
 
-环境要求：**JDK 17+（编译目标 21）· Maven 3.8+ · Node.js 18+ · PostgreSQL 18（本机端口 5433）**。
+环境要求：**JDK 17+（编译目标 21）· Maven 3.8+ · Node.js 18+ · PostgreSQL 18**。
+> PostgreSQL 本项目用 **5433** 端口（非默认 5432）；若你的实例端口不同，设环境变量 `DB_URL` / `TEST_DB_URL` 即可，无需改代码。
 
 ```cmd
 :: 1) 一次性准备数据库（建 edu_user / edu_platform / edu_platform_test + 导入 DDL）
-::    详见 guide.md「三、数据库准备」
+::    详见 guide.md「任务 2：数据库准备」——注意 docs/ 必须与 edu-platform/ 同级
 
 :: 2) 前端安装依赖（首次）
 cd edu-platform-frontend && npm install
@@ -63,7 +75,7 @@ start.bat
 | 后台管理 | http://localhost:5173/admin/instructors |
 | API 文档 | http://localhost:8080/swagger-ui/index.html |
 
-> ⚠️ Windows 下请在 **cmd.exe** 中执行 `mvn` / `start.bat`（Git Bash 中 Maven 脚本会死循环，见 guide.md 常见问题 Q1）。
+> ⚠️ Windows 下请在 **cmd.exe** 中执行 `mvn` / `start.bat`（Git Bash 中 Maven 脚本会死循环，见 guide.md FAQ #1）。
 
 ## 🔌 API 一览
 
