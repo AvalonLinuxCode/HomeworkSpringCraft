@@ -66,6 +66,8 @@ async function load() {
     })
     records.value = data.records
     total.value = data.total
+  } catch {
+    // client.ts 拦截器已经弹过提示，这里只负责别再抛出去
   } finally {
     loading.value = false
   }

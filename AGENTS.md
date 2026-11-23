@@ -8,7 +8,7 @@
 
 **目的**：完成在线教育平台从需求分析到开发上线的全流程软件工程实践。
 
-**当前状态**：🟢 设计文档完成；讲师服务（InstructorService）垂直切片已落地，8 个单元测试 + 6 个集成测试全绿，其余服务待开发。
+**当前状态**：🟢 v0.2.1-SNAPSHOT — 讲师 / 课程 / 分类三服务与 Vue 3 前后端全部落地；单元 44/44、集成 25/25 全绿；审计 04 的 2 BLOCKER + 4 MAJOR + 7 MINOR + 5 NIT 已整改，复审轮又补了 3 MAJOR + 2 个新缺陷（后台课程详情端点缺失、未映射路径返回 500），处置见 `CodeLog/05` 第七节。
 
 **核心功能**：
 - 后台：讲师管理、课程管理、分类管理
@@ -468,6 +468,7 @@ PUT    /api/admin/instructors/{id}
 DELETE /api/admin/instructors/{id}
 
 GET    /api/admin/courses
+GET    /api/admin/courses/{id}
 POST   /api/admin/courses
 PUT    /api/admin/courses/{id}
 DELETE /api/admin/courses/{id}
@@ -480,6 +481,7 @@ GET    /api/front/courses/{id}
 GET    /api/front/courses/search
 GET    /api/front/instructors
 GET    /api/front/instructors/{id}
+GET    /api/front/instructors/{id}/courses
 ```
 
 ### 数据库实体

@@ -10,7 +10,17 @@
         <el-input v-model="query.keyword" placeholder="标题/描述" clearable @keyup.enter="search" />
       </el-form-item>
       <el-form-item label="讲师">
-        <el-select v-model="query.instructorId" clearable placeholder="全部" style="width: 160px">
+        <el-select
+          v-model="query.instructorId"
+          clearable
+          filterable
+          remote
+          reserve-keyword
+          placeholder="全部"
+          :remote-method="searchInstructors"
+          :loading="instructorLoading"
+          style="width: 160px"
+        >
           <el-option v-for="i in instructors" :key="i.id" :label="i.name" :value="i.id" />
         </el-select>
       </el-form-item>
@@ -72,7 +82,16 @@
           <el-input v-model="form.title" maxlength="200" />
         </el-form-item>
         <el-form-item label="讲师" prop="instructorId">
-          <el-select v-model="form.instructorId" placeholder="选择讲师" style="width: 100%">
+          <el-select
+            v-model="form.instructorId"
+            placeholder="选择讲师"
+            filterable
+            remote
+            reserve-keyword
+            :remote-method="searchInstructors"
+            :loading="instructorLoading"
+            style="width: 100%"
+          >
             <el-option v-for="i in instructors" :key="i.id" :label="i.name" :value="i.id" />
           </el-select>
         </el-form-item>
@@ -116,6 +135,7 @@ const records = ref<CourseVO[]>([])
 const total = ref(0)
 const loading = ref(false)
 const instructors = ref<InstructorVO[]>([])
+const instructorLoading = ref(false)
 const flatCategories = ref<CategoryVO[]>([])
 
 const query = reactive({
@@ -155,10 +175,32 @@ function flatten(nodes: CategoryVO[]): CategoryVO[] {
   return out
 }
 
+// 讲师下拉框走分页搜索，不用 listAll()：服务端对 listAll 封顶 200 条且按 id 倒序，
+// 全量拉取会让第 201 位之后的讲师从下拉框里静默消失，再也指派不到课程。
+const INSTRUCTOR_PAGE_SIZE = 50
+
+async function searchInstructors(keyword = '') {
+  instructorLoading.value = true
+  try {
+    const data = await instructorApi.page({
+      keyword: keyword.trim() || undefined,
+      pageNum: 1,
+      pageSize: INSTRUCTOR_PAGE_SIZE
+    })
+    instructors.value = data.records
+  } catch {
+    // 拦截器已提示
+  } finally {
+    instructorLoading.value = false
+  }
+}
+
 async function loadReference() {
-  const [ins, cats] = await Promise.all([instructorApi.listAll(), categoryApi.tree()])
-  instructors.value = ins
-  flatCategories.value = flatten(cats)
+  try {
+    flatCategories.value = flatten(await categoryApi.tree())
+  } catch {
+    // client.ts 拦截器已经弹过提示，这里只负责别再抛出去
+  }
 }
 
 async function load() {
@@ -167,6 +209,8 @@ async function load() {
     const data = await courseApi.page({ ...query })
     records.value = data.records
     total.value = data.total
+  } catch {
+    // 拦截器已提示
   } finally {
     loading.value = false
   }
@@ -208,8 +252,9 @@ function statusTag(status: string): 'success' | 'info' | 'warning' {
   return status === 'published' ? 'success' : status === 'archived' ? 'info' : 'warning'
 }
 
-function openCreate() {
+async function openCreate() {
   editingId.value = null
+  await searchInstructors()
   Object.assign(form, {
     title: '',
     description: '',
@@ -224,19 +269,30 @@ function openCreate() {
 }
 
 async function openEdit(id: number) {
-  const detail = await courseApi.getById(id)
-  editingId.value = id
-  Object.assign(form, {
-    title: detail.title,
-    description: detail.description ?? '',
-    price: detail.price,
-    instructorId: detail.instructorId,
-    categoryId: detail.categoryId,
-    coverImage: detail.coverImage ?? '',
-    tags: detail.tags ?? [],
-    details: detail.details ?? ''
-  })
-  dialogVisible.value = true
+  try {
+    const detail = await courseApi.getById(id)
+    if (!instructors.value.some((i) => i.id === detail.instructorId)) {
+      try {
+        instructors.value = [await instructorApi.getById(detail.instructorId), ...instructors.value]
+      } catch {
+        // 取不到就退回显示 ID，不挡住编辑
+      }
+    }
+    editingId.value = id
+    Object.assign(form, {
+      title: detail.title,
+      description: detail.description ?? '',
+      price: detail.price,
+      instructorId: detail.instructorId,
+      categoryId: detail.categoryId,
+      coverImage: detail.coverImage ?? '',
+      tags: detail.tags ?? [],
+      details: detail.details ?? ''
+    })
+    dialogVisible.value = true
+  } catch {
+    // 拦截器已提示
+  }
 }
 
 async function save() {
@@ -264,6 +320,8 @@ async function save() {
       }
       dialogVisible.value = false
       load()
+    } catch {
+      // 拦截器已提示
     } finally {
       saving.value = false
     }
@@ -271,29 +329,45 @@ async function save() {
 }
 
 async function publish(row: CourseVO) {
-  await courseApi.publish(row.id)
-  ElMessage.success('已上架')
-  load()
+  try {
+    await courseApi.publish(row.id)
+    ElMessage.success('已上架')
+    load()
+  } catch {
+    // 拦截器已提示
+  }
 }
 
 async function unpublish(row: CourseVO) {
-  await courseApi.unpublish(row.id)
-  ElMessage.success('已下架')
-  load()
+  try {
+    await courseApi.unpublish(row.id)
+    ElMessage.success('已下架')
+    load()
+  } catch {
+    // 拦截器已提示
+  }
 }
 
 async function remove(row: CourseVO) {
-  await ElMessageBox.confirm(`确定删除课程「${row.title}」吗？`, '提示', { type: 'warning' })
-  await courseApi.remove(row.id)
-  ElMessage.success('删除成功')
-  if (records.value.length === 1 && query.pageNum > 1) {
-    query.pageNum -= 1
+  try {
+    await ElMessageBox.confirm(`确定删除课程「${row.title}」吗？`, '提示', { type: 'warning' })
+  } catch {
+    return // 用户点了取消，不是错误
   }
-  load()
+  try {
+    await courseApi.remove(row.id)
+    ElMessage.success('删除成功')
+    if (records.value.length === 1 && query.pageNum > 1) {
+      query.pageNum -= 1
+    }
+    load()
+  } catch {
+    // 拦截器已提示
+  }
 }
 
 onMounted(async () => {
-  await loadReference()
+  await Promise.all([loadReference(), searchInstructors()])
   load()
 })
 </script>

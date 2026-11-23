@@ -12,9 +12,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +79,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setSortOrder(dto.sortOrder() == null ? 0 : dto.sortOrder());
         category.setLevel(resolveLevel(newParentId));
         categoryMapper.updateById(category);
-        recomputeDescendantLevels(category);
+        recomputeDescendantLevels(category.getId());
     }
 
     @Override
@@ -136,40 +134,18 @@ public class CategoryServiceImpl implements CategoryService {
         return parent.getLevel() + 1;
     }
 
-    /** 沿父链上溯，若遇到自身说明会把分类移进自己的子树，形成环。 */
+    /** 沿父链上溯（一条递归 CTE 取整条链），若遇到自身说明会把分类移进自己的子树，形成环。 */
     private void ensureNoCycle(Long id, Long newParentId) {
-        Long cursor = newParentId;
-        for (int depth = 0; cursor != null && depth <= MAX_DEPTH; depth++) {
-            if (cursor.equals(id)) {
-                throw new ValidationException("不能将分类移动到其子分类下");
-            }
-            Category parent = categoryMapper.selectById(cursor);
-            cursor = parent == null ? null : parent.getParentId();
+        if (categoryMapper.isOnParentChain(newParentId, id, MAX_DEPTH)) {
+            throw new ValidationException("不能将分类移动到其子分类下");
         }
     }
 
-    /** 父级变化后，递归刷新所有后代的 level。 */
-    private void recomputeDescendantLevels(Category root) {
-        List<Category> all = categoryMapper.selectAllOrdered();
-        Map<Long, List<Category>> byParent = new LinkedHashMap<>();
-        for (Category category : all) {
-            if (category.getParentId() != null) {
-                byParent.computeIfAbsent(category.getParentId(), key -> new ArrayList<>()).add(category);
-            }
-        }
-        Deque<Category> queue = new ArrayDeque<>();
-        queue.add(root);
-        while (!queue.isEmpty()) {
-            Category parent = queue.poll();
-            List<Category> children = byParent.getOrDefault(parent.getId(), List.of());
-            for (Category child : children) {
-                int expected = parent.getLevel() + 1;
-                if (child.getLevel() == null || child.getLevel() != expected) {
-                    child.setLevel(expected);
-                    categoryMapper.updateById(child);
-                }
-                queue.add(child);
-            }
-        }
+    /**
+     * 父级变化后刷新后代 level。一条递归 CTE 就地算出整棵子树的新层级并批量 UPDATE；
+     * 旧实现是先全表加载再逐行 updateById，每次移动分类都要 N+1 次往返。
+     */
+    private void recomputeDescendantLevels(Long rootId) {
+        categoryMapper.refreshDescendantLevels(rootId, MAX_DEPTH);
     }
 }

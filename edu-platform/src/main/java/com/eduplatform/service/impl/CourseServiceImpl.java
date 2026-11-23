@@ -1,5 +1,11 @@
 package com.eduplatform.service.impl;
 
+import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+
 import com.eduplatform.common.BusinessException;
 import com.eduplatform.common.NotFoundException;
 import com.eduplatform.common.PageResult;
@@ -24,6 +30,11 @@ import java.util.Set;
 
 @Service
 public class CourseServiceImpl implements CourseService {
+
+    /** details 预校验用；FAIL_ON_TRAILING_TOKENS 让 {@code {"a":1} 垃圾} 这类尾巴也判定为非法。 */
+    private static final ObjectMapper JSON = JsonMapper.builder()
+            .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+            .build();
 
     private final CourseMapper courseMapper;
     private final InstructorMapper instructorMapper;
@@ -90,21 +101,20 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public void publish(Long id) {
-        Course course = requireCourse(id);
-        if ("published".equals(course.getStatus())) {
+        requireCourse(id);
+        // 状态守卫下推到 SQL：并发重复上架只有一次能真正改动数据
+        if (courseMapper.publishById(id) == 0) {
             throw new BusinessException("课程已上架，无需重复上架");
         }
-        courseMapper.updateStatus(id, "published");
     }
 
     @Override
     @Transactional
     public void unpublish(Long id) {
-        Course course = requireCourse(id);
-        if (!"published".equals(course.getStatus())) {
+        requireCourse(id);
+        if (courseMapper.unpublishById(id) == 0) {
             throw new BusinessException("课程未上架，无法下架");
         }
-        courseMapper.updateStatus(id, "draft");
     }
 
     @Override
@@ -183,7 +193,25 @@ public class CourseServiceImpl implements CourseService {
         return distinct.isEmpty() ? null : distinct.toArray(new String[0]);
     }
 
+    /**
+     * 先把 details 校验成合法 JSON，再交给 {@code CAST(#{details} AS jsonb)}。
+     * 不预检的话 PostgreSQL 抛 {@code invalid input syntax for type json}，翻译后是
+     * {@code DataIntegrityViolationException}，最终变成对用户毫无意义的 500。
+     * 顶层只接受对象/数组，与 details 字段的实际用法（章节、评价等动态字段）一致。
+     */
     private static String normalizeDetails(String details) {
-        return (details == null || details.isBlank()) ? null : details;
+        if (details == null || details.isBlank()) {
+            return null;
+        }
+        JsonNode parsed;
+        try {
+            parsed = JSON.readTree(details);
+        } catch (JacksonException e) {
+            throw new ValidationException("课程详情必须是合法的 JSON");
+        }
+        if (!parsed.isObject() && !parsed.isArray()) {
+            throw new ValidationException("课程详情必须是合法的 JSON 对象或数组");
+        }
+        return details;
     }
 }

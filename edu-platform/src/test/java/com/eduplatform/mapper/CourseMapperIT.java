@@ -2,21 +2,17 @@ package com.eduplatform.mapper;
 
 import com.eduplatform.common.BusinessException;
 import com.eduplatform.common.PageResult;
-import com.eduplatform.common.ValidationException;
 import com.eduplatform.dto.CourseQuery;
 import com.eduplatform.entity.Course;
 import com.eduplatform.entity.Instructor;
-import com.eduplatform.service.impl.CourseServiceImpl;
+import com.eduplatform.service.CourseService;
 import com.eduplatform.vo.CourseDetailVO;
 import com.eduplatform.vo.CourseVO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -31,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Ring B：课程服务集成测试，连真实 PostgreSQL 18（独立库 edu_platform_test，每个用例重放 schema.sql）。
  */
-@SpringBootTest
 class CourseMapperIT extends AbstractMapperIT {
 
     @Autowired
@@ -44,7 +39,7 @@ class CourseMapperIT extends AbstractMapperIT {
     private CategoryMapper categoryMapper;
 
     @Autowired
-    private CourseServiceImpl courseService;
+    private CourseService courseService;
 
     private Long seedInstructorId;
     private Long seedCategoryId;
@@ -231,5 +226,43 @@ class CourseMapperIT extends AbstractMapperIT {
         } catch (SQLException e) {
             throw new IllegalStateException("插入订单失败", e);
         }
+    }
+
+    /**
+     * 上下架守卫子句只能靠真库证明：Ring A 把 mapper 整个 mock 掉了，
+     * 删掉 XML 里的 `AND status &lt;&gt; 'published'` 后单元测试与前端全都不会红。
+     */
+    @Test
+    void publishGuardRejectsSecondAttemptInDatabase() {
+        Course course = new Course();
+        course.setTitle("重复上架守卫");
+        course.setInstructorId(seedInstructorId);
+        course.setPrice(BigDecimal.ZERO);
+        course.setStatus("draft");
+        courseMapper.insertCourse(course);
+
+        courseService.publish(course.getId());
+        assertThat(courseMapper.selectById(course.getId()).getStatus()).isEqualTo("published");
+
+        assertThatThrownBy(() -> courseService.publish(course.getId()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("课程已上架，无需重复上架");
+        assertThat(courseMapper.selectById(course.getId()).getStatus()).isEqualTo("published");
+    }
+
+    /** 未上架的守卫是「必须是 published」：归档课程不能被 unpublish 悄悄改成 draft。 */
+    @Test
+    void unpublishGuardLeavesNonPublishedCourseUntouched() {
+        Course course = new Course();
+        course.setTitle("归档课程下架守卫");
+        course.setInstructorId(seedInstructorId);
+        course.setPrice(BigDecimal.ZERO);
+        course.setStatus("archived");
+        courseMapper.insertCourse(course);
+
+        assertThatThrownBy(() -> courseService.unpublish(course.getId()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("课程未上架，无法下架");
+        assertThat(courseMapper.selectById(course.getId()).getStatus()).isEqualTo("archived");
     }
 }

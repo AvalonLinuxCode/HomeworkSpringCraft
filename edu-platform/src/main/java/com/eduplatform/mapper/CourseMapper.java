@@ -28,7 +28,11 @@ public interface CourseMapper extends BaseMapper<Course> {
 
     int updateCourse(Course course);
 
-    int updateStatus(@Param("id") Long id, @Param("status") String status);
+    /** 上架：仅当当前状态不是 published 时写入，返回影响行数（0 表示已是上架态）。 */
+    int publishById(@Param("id") Long id);
+
+    /** 下架：仅当当前状态是 published 时改回 draft，返回影响行数（0 表示本就未上架）。 */
+    int unpublishById(@Param("id") Long id);
 
     long countByInstructorId(@Param("instructorId") Long instructorId);
 }

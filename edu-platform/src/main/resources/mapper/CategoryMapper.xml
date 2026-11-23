@@ -16,4 +16,40 @@
         SELECT COUNT(*) FROM course WHERE category_id = #{categoryId}
     </select>
 
+    <!-- 从 startId 沿 parent_id 上溯（含起点），判断链上是否出现 ancestorId。
+         移动分类时的成环检测，取代原先「每跳一次一条 selectById」的循环。 -->
+    <select id="isOnParentChain" resultType="boolean">
+        WITH RECURSIVE chain AS (
+            SELECT id, parent_id, 0 AS depth
+            FROM category
+            WHERE id = #{startId}
+            UNION ALL
+            SELECT p.id, p.parent_id, chain.depth + 1
+            FROM chain
+            JOIN category p ON p.id = chain.parent_id
+            WHERE chain.depth &lt; #{maxDepth}
+        )
+        SELECT EXISTS (SELECT 1 FROM chain WHERE chain.id = #{ancestorId})
+    </select>
+
+    <!-- 一条语句重算 rootId 整棵子树的 level：递归 CTE 算出各后代的正确层级，
+         只写确实变了的行；取代原先「全表加载 + 逐后代 updateById」。 -->
+    <update id="refreshDescendantLevels">
+        WITH RECURSIVE subtree AS (
+            SELECT id, level, 0 AS depth
+            FROM category
+            WHERE id = #{rootId}
+            UNION ALL
+            SELECT c.id, subtree.level + 1, subtree.depth + 1
+            FROM category c
+            JOIN subtree ON subtree.id = c.parent_id
+            WHERE subtree.depth &lt; #{maxDepth}
+        )
+        UPDATE category
+        SET level = subtree.level
+        FROM subtree
+        WHERE category.id = subtree.id
+          AND category.level IS DISTINCT FROM subtree.level
+    </update>
+
 </mapper>

@@ -176,8 +176,9 @@ edu-platform-frontend/
 | GET | `/api/front/courses/{id}` | 课程详情 |
 | GET | `/api/front/courses/search` | 课程搜索 |
 | | | |
-| GET | `/api/front/instructors` | 讲师列表 |
-| GET | `/api/front/instructors/{id}` | 讲师详情（含所授课程） |
+| GET | `/api/front/instructors` | 讲师列表（不分页，服务端封顶 200 条） |
+| GET | `/api/front/instructors/{id}` | 讲师详情 |
+| GET | `/api/front/instructors/{id}/courses` | 讲师所授课程（仅已上架） |
 | | | |
 | GET | `/api/front/categories/tree` | 分类树（前台导航） |
 

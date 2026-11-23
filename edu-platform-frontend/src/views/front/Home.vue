@@ -78,6 +78,8 @@ onMounted(async () => {
     ])
     courses.value = coursePage.records
     instructors.value = insList.slice(0, 6)
+  } catch {
+    // client.ts 拦截器已经弹过提示，这里只负责别再抛出去
   } finally {
     loading.value = false
   }

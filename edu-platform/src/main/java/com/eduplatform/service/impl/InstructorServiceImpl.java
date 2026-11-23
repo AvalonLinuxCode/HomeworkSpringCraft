@@ -20,6 +20,9 @@ import java.util.List;
 @Service
 public class InstructorServiceImpl implements InstructorService {
 
+    /** 前台不分页列表的硬上限：讲师过千时首页/下拉框不会被一次全表拖死。 */
+    public static final int FRONT_MAX = 200;
+
     private final InstructorMapper instructorMapper;
     private final CourseMapper courseMapper;
 
@@ -31,7 +34,7 @@ public class InstructorServiceImpl implements InstructorService {
     @Override
     @Transactional(readOnly = true)
     public List<InstructorVO> listAll() {
-        return instructorMapper.list(null, Integer.MAX_VALUE, 0).stream()
+        return instructorMapper.list(null, FRONT_MAX, 0).stream()
                 .map(InstructorVO::from)
                 .toList();
     }

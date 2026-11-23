@@ -86,6 +86,8 @@ async function load() {
   loading.value = true
   try {
     tree.value = await categoryApi.tree()
+  } catch {
+    // client.ts 拦截器已经弹过提示，这里只负责别再抛出去
   } finally {
     loading.value = false
   }
@@ -127,6 +129,8 @@ async function save() {
       }
       dialogVisible.value = false
       load()
+    } catch {
+      // 拦截器已提示
     } finally {
       saving.value = false
     }
@@ -134,10 +138,18 @@ async function save() {
 }
 
 async function remove(row: CategoryVO) {
-  await ElMessageBox.confirm(`确定删除分类「${row.name}」吗？`, '提示', { type: 'warning' })
-  await categoryApi.remove(row.id)
-  ElMessage.success('删除成功')
-  load()
+  try {
+    await ElMessageBox.confirm(`确定删除分类「${row.name}」吗？`, '提示', { type: 'warning' })
+  } catch {
+    return // 用户点了取消，不是错误
+  }
+  try {
+    await categoryApi.remove(row.id)
+    ElMessage.success('删除成功')
+    load()
+  } catch {
+    // 拦截器已提示
+  }
 }
 
 onMounted(load)

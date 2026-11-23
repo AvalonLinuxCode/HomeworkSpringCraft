@@ -6,3 +6,10 @@ spring:
     url: ${TEST_DB_URL:jdbc:postgresql://127.0.0.1:5433/edu_platform_test}
     username: ${TEST_DB_USER:edu_user}
     password: ${TEST_DB_PASSWORD:edu_password}
+    hikari:
+      data-source-properties:
+        # schema.sql 每次重放都会 DROP + CREATE course_status 枚举，类型 OID 随之改变；
+        # 池化连接上执行满 5 次的语句会缓存服务端通用计划，之后复用就报
+        # 「cached plan must not change result type」，并连带把连接判死、回滚失败。
+        # 关掉驱动侧语句缓存（只影响测试档，生产库不会重建类型）。
+        preparedStatementCacheQueries: 0

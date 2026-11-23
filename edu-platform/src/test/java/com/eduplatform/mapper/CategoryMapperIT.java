@@ -6,12 +6,10 @@ import com.eduplatform.common.ValidationException;
 import com.eduplatform.dto.CategoryDTO;
 import com.eduplatform.entity.Category;
 import com.eduplatform.entity.Course;
-import com.eduplatform.entity.Instructor;
-import com.eduplatform.service.impl.CategoryServiceImpl;
+import com.eduplatform.service.CategoryService;
 import com.eduplatform.vo.CategoryVO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -24,14 +22,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * <p>注意：schema.sql 重放后自带种子分类（前端开发/后端开发等），涉及全局树大小的断言需按名称定位。
  */
-@SpringBootTest
 class CategoryMapperIT extends AbstractMapperIT {
 
     @Autowired
     private CategoryMapper categoryMapper;
 
     @Autowired
-    private CategoryServiceImpl categoryService;
+    private CategoryService categoryService;
 
     @Autowired
     private CourseMapper courseMapper;
@@ -73,7 +70,7 @@ class CategoryMapperIT extends AbstractMapperIT {
     }
 
     @Test
-    void updateParentChangesLevel() {
+    void updateParentChangesLevelRecomputesWholeSubtree() {
         Long rootId = categoryService.create(new CategoryDTO("根", null, 10));
         Long childId = categoryService.create(new CategoryDTO("子", rootId, 10));
         Long grandChildId = categoryService.create(new CategoryDTO("孙", childId, 10));
@@ -83,6 +80,23 @@ class CategoryMapperIT extends AbstractMapperIT {
         Category child = categoryMapper.selectById(childId);
         assertThat(child.getName()).isEqualTo("子级改名");
         assertThat(child.getSortOrder()).isEqualTo(20);
+        assertThat(child.getLevel()).isEqualTo(0);
+        // 递归 CTE 一次刷完整棵子树：孙节点必须跟着从 2 变 1
+        assertThat(categoryMapper.selectById(grandChildId).getLevel()).isEqualTo(1);
+    }
+
+    @Test
+    void updateMoveUnderOwnDescendantThrowsValidation() {
+        Long rootId = categoryService.create(new CategoryDTO("根", null, 10));
+        Long childId = categoryService.create(new CategoryDTO("子", rootId, 10));
+        Long grandChildId = categoryService.create(new CategoryDTO("孙", childId, 10));
+
+        // 隔了两代的环：靠递归查询沿父链上溯才能发现
+        assertThatThrownBy(() -> categoryService.update(rootId, new CategoryDTO("根", grandChildId, 10)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("不能将分类移动到其子分类下");
+
+        assertThat(categoryMapper.selectById(rootId).getParentId()).isNull();
     }
 
     @Test

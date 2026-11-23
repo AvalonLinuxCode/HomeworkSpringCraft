@@ -131,14 +131,42 @@ class CourseServiceImplTest {
     }
 
     @Test
-    void publishAlreadyPublishedThrowsBusiness() {
+    void publishIsRejectedWhenGuardMatchesNoRow() {
         Course course = new Course();
         course.setId(1L);
         course.setStatus("published");
         when(courseMapper.selectById(1L)).thenReturn(course);
+        when(courseMapper.publishById(1L)).thenReturn(0);
 
         assertThatThrownBy(() -> courseService.publish(1L))
-                .isInstanceOf(BusinessException.class);
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("课程已上架，无需重复上架");
+    }
+
+    @Test
+    void publishWritesWhenGuardAccepts() {
+        Course course = new Course();
+        course.setId(1L);
+        course.setStatus("draft");
+        when(courseMapper.selectById(1L)).thenReturn(course);
+        when(courseMapper.publishById(1L)).thenReturn(1);
+
+        courseService.publish(1L);
+
+        verify(courseMapper).publishById(1L);
+    }
+
+    @Test
+    void unpublishIsRejectedWhenGuardMatchesNoRow() {
+        Course course = new Course();
+        course.setId(1L);
+        course.setStatus("draft");
+        when(courseMapper.selectById(1L)).thenReturn(course);
+        when(courseMapper.unpublishById(1L)).thenReturn(0);
+
+        assertThatThrownBy(() -> courseService.unpublish(1L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("课程未上架，无法下架");
     }
 
     @Test
@@ -153,5 +181,54 @@ class CourseServiceImplTest {
 
         assertThat(result.total()).isEqualTo(2L);
         assertThat(result.records()).hasSize(2);
+    }
+
+    @Test
+    void createWithMalformedDetailsJsonThrowsValidation() {
+        when(instructorMapper.selectById(anyLong())).thenReturn(new com.eduplatform.entity.Instructor());
+
+        assertThatThrownBy(() -> courseService.create(new CourseDTO("标题", null, BigDecimal.ONE,
+                1L, null, null, null, "{bad json")))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("课程详情必须是合法的 JSON");
+
+        verify(courseMapper, never()).insertCourse(any());
+    }
+
+    /** readTree 默认允许值后面拖尾巴，PG 却会拒收，所以显式开了 FAIL_ON_TRAILING_TOKENS。 */
+    @Test
+    void createWithTrailingGarbageAfterDetailsJsonThrowsValidation() {
+        when(instructorMapper.selectById(anyLong())).thenReturn(new com.eduplatform.entity.Instructor());
+
+        assertThatThrownBy(() -> courseService.create(new CourseDTO("标题", null, BigDecimal.ONE,
+                1L, null, null, null, "{\"a\":1} 尾巴")))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("课程详情必须是合法的 JSON");
+    }
+
+    @Test
+    void createWithScalarDetailsJsonThrowsValidation() {
+        when(instructorMapper.selectById(anyLong())).thenReturn(new com.eduplatform.entity.Instructor());
+
+        assertThatThrownBy(() -> courseService.create(new CourseDTO("标题", null, BigDecimal.ONE,
+                1L, null, null, null, "123")))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("课程详情必须是合法的 JSON 对象或数组");
+    }
+
+    @Test
+    void createWithValidDetailsJsonPersistsTextVerbatim() {
+        when(instructorMapper.selectById(anyLong())).thenReturn(new com.eduplatform.entity.Instructor());
+        when(courseMapper.insertCourse(any(Course.class))).thenAnswer(invocation -> {
+            invocation.getArgument(0, Course.class).setId(88L);
+            return 1;
+        });
+
+        courseService.create(new CourseDTO("标题", null, BigDecimal.ONE,
+                1L, null, null, null, "{\"chapters\":[]}"));
+
+        ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
+        verify(courseMapper).insertCourse(captor.capture());
+        assertThat(captor.getValue().getDetails()).isEqualTo("{\"chapters\":[]}");
     }
 }

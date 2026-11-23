@@ -108,6 +108,19 @@ CREATE INDEX idx_course_status ON course(status);
 CREATE INDEX idx_course_price ON course(price);
 CREATE INDEX idx_course_title ON course USING gin(to_tsvector('simple', title));
 
+-- 关键字搜索对 description 用的是 ILIKE '%kw%'，btree 帮不上忙，需要 pg_trgm 的三元组 GIN 索引。
+-- 整段包在 DO 块里：扩展不可用（未安装 contrib 或权限不足）时降级为顺序扫描并 NOTICE 提示，
+-- 绝不因此中断建表——DDL 要在裸库上可重复执行。
+DO $$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    CREATE INDEX IF NOT EXISTS idx_course_description_trgm
+        ON course USING gin (description gin_trgm_ops);
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE '跳过 description 三元组索引（pg_trgm 不可用）: %', SQLERRM;
+END
+$$;
+
 -- ============================================================
 -- 订单表 (orders)
 -- 记录课程购买/支付信息

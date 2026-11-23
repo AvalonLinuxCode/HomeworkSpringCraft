@@ -1,6 +1,5 @@
 package com.eduplatform.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -12,6 +11,11 @@ import java.time.OffsetDateTime;
 
 /**
  * 课程表 course 的映射对象。tags 为 PostgreSQL {@code text[]}，details 为 {@code jsonb}（以字符串读写）。
+ *
+ * <p>course 的写入全部走 {@code CourseMapper.xml} 里的自定义语句，BaseMapper 的字段写入策略
+ * （{@code FieldStrategy}）在这条路径上根本不生效，故不再标注——免得后人以为改注解能改写入行为。
+ * 这里唯一真正被依赖的是 tags 的 typeHandler：{@code selectById} 生成的 autoResultMap 靠它读数组。
+ * 时间戳由数据库默认值与触发器维护。
  */
 @TableName(value = "course", autoResultMap = true)
 public class Course {
@@ -21,31 +25,25 @@ public class Course {
 
     private String title;
 
-    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String description;
 
     private BigDecimal price;
 
     private Long instructorId;
 
-    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long categoryId;
 
     private String status;
 
-    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String coverImage;
 
     @TableField(typeHandler = StringArrayTypeHandler.class)
     private String[] tags;
 
-    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String details;
 
-    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     private OffsetDateTime createdAt;
 
-    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     private OffsetDateTime updatedAt;
 
     public Long getId() {

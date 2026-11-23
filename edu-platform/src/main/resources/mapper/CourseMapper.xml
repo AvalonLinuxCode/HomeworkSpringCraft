@@ -133,8 +133,16 @@
         WHERE id = #{id}
     </update>
 
-    <update id="updateStatus">
-        UPDATE course SET status = #{status}::course_status WHERE id = #{id}
+    <!-- 上下架各一条带状态守卫的 UPDATE：影响行数 0 表示守卫未命中（重复上架 / 本就未上架），
+         读-判断-写的竞态由数据库单次语句承担，不靠应用层先查后改。 -->
+    <update id="publishById">
+        UPDATE course SET status = 'published'::course_status
+        WHERE id = #{id} AND status &lt;&gt; 'published'::course_status
+    </update>
+
+    <update id="unpublishById">
+        UPDATE course SET status = 'draft'::course_status
+        WHERE id = #{id} AND status = 'published'::course_status
     </update>
 
     <select id="countByInstructorId" resultType="long">

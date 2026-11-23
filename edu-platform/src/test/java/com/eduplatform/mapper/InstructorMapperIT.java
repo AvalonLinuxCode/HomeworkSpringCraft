@@ -3,7 +3,6 @@ package com.eduplatform.mapper;
 import com.eduplatform.entity.Instructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -21,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>连接本地 PostgreSQL 18 实例（默认 {@code 127.0.0.1:5433/edu_platform_test}），
  * 每个用例前整段重放 {@code schema.sql}（见 {@link AbstractMapperIT}），用例之间互不干扰。
  */
-@SpringBootTest
 class InstructorMapperIT extends AbstractMapperIT {
 
     @Autowired

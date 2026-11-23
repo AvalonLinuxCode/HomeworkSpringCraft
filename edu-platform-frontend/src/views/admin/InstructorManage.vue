@@ -95,6 +95,8 @@ async function load() {
     })
     records.value = data.records
     total.value = data.total
+  } catch {
+    // client.ts 拦截器已经弹过提示，这里只负责别再抛出去
   } finally {
     loading.value = false
   }
@@ -149,6 +151,8 @@ async function save() {
       }
       dialogVisible.value = false
       load()
+    } catch {
+      // 拦截器已提示
     } finally {
       saving.value = false
     }
@@ -156,13 +160,21 @@ async function save() {
 }
 
 async function remove(row: InstructorVO) {
-  await ElMessageBox.confirm(`确定删除讲师「${row.name}」吗？`, '提示', { type: 'warning' })
-  await instructorApi.remove(row.id)
-  ElMessage.success('删除成功')
-  if (records.value.length === 1 && pageNum.value > 1) {
-    pageNum.value -= 1
+  try {
+    await ElMessageBox.confirm(`确定删除讲师「${row.name}」吗？`, '提示', { type: 'warning' })
+  } catch {
+    return // 用户点了取消，不是错误
   }
-  load()
+  try {
+    await instructorApi.remove(row.id)
+    ElMessage.success('删除成功')
+    if (records.value.length === 1 && pageNum.value > 1) {
+      pageNum.value -= 1
+    }
+    load()
+  } catch {
+    // 拦截器已提示
+  }
 }
 
 onMounted(load)

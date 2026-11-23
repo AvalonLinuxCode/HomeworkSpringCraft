@@ -1,5 +1,5 @@
 import http from './client'
-import type { InstructorDTO, InstructorVO, PageResult } from '@/types'
+import type { CourseVO, InstructorDTO, InstructorVO, PageResult } from '@/types'
 
 export const instructorApi = {
   // 后台分页列表
@@ -32,5 +32,10 @@ export const instructorApi = {
   // 前台详情
   frontGetById(id: number) {
     return http.get<unknown, InstructorVO>(`/front/instructors/${id}`)
+  },
+
+  // 前台：讲师所授课程（仅已上架）
+  frontCourses(id: number) {
+    return http.get<unknown, CourseVO[]>(`/front/instructors/${id}/courses`)
   }
 }

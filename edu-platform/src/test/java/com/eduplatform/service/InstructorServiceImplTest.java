@@ -139,6 +139,19 @@ class InstructorServiceImplTest {
         verify(instructorMapper).list("Java", 100, 200);
     }
 
+    @Test
+    void listAllUsesCappedLimitInsteadOfFullTableScan() {
+        when(instructorMapper.list(null, InstructorServiceImpl.FRONT_MAX, 0))
+                .thenReturn(List.of(instructor(1L, "张老师")));
+
+        List<InstructorVO> result = instructorService.listAll();
+
+        assertThat(result).hasSize(1);
+        // 前台全量列表必须带封顶 LIMIT，不能再说「一次拉全表」
+        verify(instructorMapper).list(null, InstructorServiceImpl.FRONT_MAX, 0);
+        verify(instructorMapper, never()).list(null, Integer.MAX_VALUE, 0);
+    }
+
     private static Instructor instructor(Long id, String name) {
         Instructor entity = new Instructor();
         entity.setId(id);
