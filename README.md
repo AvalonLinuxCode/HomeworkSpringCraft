@@ -12,7 +12,7 @@
 >
 > 完整说明见 **[guide.md](guide.md)**「变量约定」与「常见问题」。
 >
-> 也可已将 **[guide.md](guide.md)** 丢给你的Agent，叫他帮你部署
+> 也可已将[AGENTS.md](AGENTS.md)和  **[guide.md](guide.md)** 丢给你的Agent，叫他帮你部署
 
 ## ✨ 功能概览
 
